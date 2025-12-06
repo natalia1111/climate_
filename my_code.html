@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Климат и сельское хозяйство Беларуси: от ледниковья до 2040 года</title>
+<style>
+  :root {
+    --bg:#0f172a; --card:#111827; --muted:#94a3b8; --text:#e5e7eb; --accent:#22d3ee; --good:#10b981; --warn:#f59e0b; --bad:#ef4444;
+  }
+  body { margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto; background:var(--bg); color:var(--text); }
+  header { padding:20px; border-bottom:1px solid #1f2937; background:#0b1224; position:sticky; top:0; z-index:10; }
+  header h1 { margin:0 0 8px; font-size:22px; }
+  header p { margin:0; font-size:14px; color:var(--muted); }
+  .wrap { max-width:1100px; margin:0 auto; padding:20px; }
+  .grid { display:grid; grid-template-columns:1.2fr 1fr; gap:16px; }
+  .card { background:var(--card); border-radius:12px; padding:16px; box-shadow:0 0 0 1px #1f2937 inset; }
+  .card h2 { margin:0 0 10px; font-size:18px; }
+  .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  .label { font-size:12px; color:var(--muted); }
+  .stat { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-top:12px; }
+  .stat .kpi { background:#0d1428; border:1px solid #1f2937; border-radius:10px; padding:12px; }
+  .kpi .t { font-size:12px; color:var(--muted); }
+  .kpi .v { font-weight:600; margin-top:4px; font-size:16px; }
+  .bar { height:16px; background:#0d1428; border:1px solid #1f2937; border-radius:8px; overflow:hidden; }
+  .bar > span { display:block; height:100%; background:linear-gradient(90deg, var(--accent), #3b82f6); width:0%; transition:width .6s ease; }
+  .chart-row { display:grid; grid-template-columns:1fr; gap:10px; }
+  .pie { position:relative; width:200px; height:200px; border-radius:50%; margin:8px auto; background:conic-gradient(#60a5fa 0 0,#34d399 0 0,#f97316 0 0,#f59e0b 0 0,#a78bfa 0 0); transition:background 0.5s ease; }
+  .legend { display:grid; grid-template-columns:repeat(2,1fr); gap:6px; margin-top:10px; }
+  .legend .item { display:flex; align-items:center; gap:8px; font-size:13px; }
+  .sw { width:12px; height:12px; border-radius:3px; }
+  .ctl { display:flex; gap:12px; align-items:center; margin:8px 0; }
+  select, input[type="range"] { background:#0d1428; color:var(--text); border:1px solid #1f2937; border-radius:8px; padding:8px; }
+  .range { width:100%; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; color:#cbd5e1; font-size:12px; }
+  .tag { display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px; border:1px solid #1f2937; background:#0d1428; color:var(--muted); }
+  .pill { display:inline-block; padding:6px 10px; border-radius:999px; font-size:12px; }
+  .good { background-color:#052e27; color:#34d399; border:1px solid #115e59; }
+  .warn { background-color:#2c1e0a; color:#fbbf24; border:1px solid #b45309; }
+  .bad  { background-color:#2b0e12; color:#fb7185; border:1px solid #be123c; }
+  footer { padding:16px; color:var(--muted); text-align:center; font-size:12px; }
+  .hint { color:#94a3b8; font-size:12px; }
+  .list { display:grid; gap:6px; margin-top:10px; font-size:13px; }
+  .mini { font-size:12px; color:#9ca3af; }
+  .hr { height:1px; background:#1f2937; margin:10px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Климат и сельское хозяйство Беларуси: от ледниковья до 2040 года</h1>
+  <p>Интерактивная реконструкция изменений температуры и осадков и их влияние на структуру посевов, урожайность и состав культур.</p>
+</header>
+
+<div class="wrap">
+  <div class="grid">
+    <!-- Управление и сводные показатели -->
+    <div class="card">
+      <h2>Управление симулятором</h2>
+      <div class="ctl">
+        <label class="label">Временной блок</label>
+        <select id="epoch">
+          <option value="lGM">Максимум последнего оледенения (26.5–19 тыс. л.н.)</option>
+          <option value="midHol">Средний голоцен (8–4 тыс. л.н.)</option>
+          <option value="modern" selected>Современность (1950–2024)</option>
+          <option value="forecast">Прогноз (2025–2040)</option>
+        </select>
+      </div>
+      <div class="ctl">
+        <label class="label">Региональный акцент</label>
+        <select id="region">
+          <option value="BY">Belarus (среднее)</option>
+          <option value="Brest">Брестская обл.</option>
+          <option value="Vitebsk">Витебская обл.</option>
+          <option value="Gomel">Гомельская обл.</option>
+        </select>
+        <span id="regionTag" class="pill">—</span>
+      </div>
+
+      <div class="stat">
+        <div class="kpi">
+          <div class="t">Температура (°C)</div>
+          <div class="v"><span id="tMin">—</span> … <span id="tMax">—</span></div>
+          <div class="bar"><span id="tBar"></span></div>
+          <div class="mini">Диапазон блочного периода</div>
+        </div>
+        <div class="kpi">
+          <div class="t">Осадки (мм/год)</div>
+          <div class="v"><span id="pMin">—</span> … <span id="pMax">—</span></div>
+          <div class="bar"><span id="pBar"></span></div>
+          <div class="mini">Средние для блока</div>
+        </div>
+        <div class="kpi">
+          <div class="t">Посевная площадь (млн га)</div>
+          <div class="v"><span id="area">—</span></div>
+          <div class="mini">Только для современных периодов</div>
+        </div>
+        <div class="kpi">
+          <div class="t">Климатическая характеристика</div>
+          <div class="v" id="climText">—</div>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+      <div class="row">
+        <span class="label">Сценарный слайдер (визуальный):</span>
+        <input id="vizSlider" class="range" type="range" min="0" max="100" value="50" />
+        <span class="hint">Сдвиг обновляет индикаторы насыщения (наглядный эффект).</span>
+      </div>
+    </div>
+
+    <!-- Структура культур и визуализации -->
+    <div class="card">
+      <h2>Структура культур и визуализации</h2>
+      <div class="row" style="justify-content:space-between; align-items:flex-start;">
+        <div>
+          <div class="label">Структура посевов (%)</div>
+          <div class="pie" id="pie"></div>
+          <div class="legend" id="legend">
+            <!-- динамически заполняется -->
+          </div>
+        </div>
+        <div style="flex:1; min-width:260px;">
+          <div class="label">Валовая урожайность (ц/га) — ключевые культуры</div>
+          <div class="chart-row" id="yieldBars"></div>
+        </div>
+      </div>
+      <div class="hr"></div>
+      <div class="label">Региональные эффекты (прогноз)</div>
+      <div id="regionEffects" class="list"></div>
+    </div>
+  </div>
+
+  <!-- Сценарии адаптации -->
+  <div class="card" style="margin-top:16px;">
+    <h2>Ожидаемые изменения и адаптация сельского хозяйства</h2>
+    <div id="adaptation" class="list"></div>
+  </div>
+
+  <!-- Источники данных (кратко) -->
+  <div class="card" style="margin-top:16px;">
+    <h2>Данные, принятые в модели</h2>
+    <ul class="list mono" id="dataNotes"></ul>
+  </div>
+
+  <footer>
+    Симулятор-концепт для учебных целей. Значения агрегированы по указанным периодам.
+  </footer>
+</div>
+
+<script>
+/** Данные блоков */
+const DATA = {
+  lGM: {
+    name: "Максимум последнего оледенения (26.5–19 тыс. л.н.)",
+    temp:[-13, 1], precip:[510, 720],
+    climate:"Экстремально холодный, умеренно влажный; земледелие отсутствует.",
+    area:null,
+    crops: null,
+    yields: null,
+    regionNotes: [],
+    adaptation: [
+      {type:"warn", text:"Земледелие отсутствует: климатическая непригодность."}
+    ],
+    sources:[
+      "Температура: −13…+1 °C (обобщение по периоду)",
+      "Осадки: 510–720 мм/год"
+    ]
+  },
+  midHol: {
+    name: "Средний голоцен (8–4 тыс. л.н.)",
+    temp:[8.8, 11.6], precip:[490, 660],
+    climate:"Стабилизирующийся климат; начало аграрной активности, ручное земледелие.",
+    area:null,
+    crops: null,
+    yields: null,
+    regionNotes: [],
+    adaptation: [
+      {type:"good", text:"Появление первых поселений, ручное земледелие в благоприятных локальных условиях."}
+    ],
+    sources:[
+      "Температура: 8.8…11.6 °C",
+      "Осадки: 490–660 мм/год"
+    ]
+  },
+  modern: {
+    name: "Современность (1950–2024)",
+    temp:[8.5, 12.5], precip:[525, 715],
+    climate:"Умеренно континентальный климат с региональными различиями; активное сельское хозяйство.",
+    area:5.86,
+    crops: [
+      {key:"Зерновые и зернобобовые", val:43.1, color:"#60a5fa"},
+      {key:"Кормовые", val:42.2, color:"#34d399"},
+      {key:"Технические", val:9.5,  color:"#f97316"},
+      {key:"Картофель", val:4.3,   color:"#f59e0b"},
+      {key:"Овощи", val:1.0,      color:"#a78bfa"}
+    ],
+    yields: [
+      {key:"Картофель", val:194, color:"#f59e0b"},
+      {key:"Свекла сахарная", val:450, color:"#ef4444"},
+      {key:"Овощи", val:278, color:"#22c55e"},
+      {key:"Зерновые", val:29.8, color:"#60a5fa"},
+      {key:"Рапс", val:19.0, color:"#a3e635"},
+      {key:"Льноволокно", val:8.6, color:"#a78bfa"}
+    ],
+    regionNotes: [],
+    adaptation: [
+      {type:"good", text:"Поддержание текущей структуры при оптимизации агропрактик и ирригации."},
+      {type:"warn", text:"Учет региональных различий осадков и температуры в агротехнологиях."}
+    ],
+    sources:[
+      "Температура: 8.5…12.5 °C",
+      "Осадки: 525–715 мм/год",
+      "Посевная площадь: 5.86 млн га",
+      "Структура: Зерн/зернобоб. 43.1%, Корм. 42.2%, Техн. 9.5%, Картофель 4.3%, Овощи 1.0%",
+      "Урожайности: свекла 450, овощи 278, картофель 194, зерновые 29.8, рапс 19.0, льноволокно 8.6 (ц/га)"
+    ]
+  },
+  forecast: {
+    name: "Прогноз (2025–2040, CCSM4/MIROC6)",
+    temp:[11, 14.5], precip:[538, 735],
+    climate:"Потепление и усиление гидрологического цикла; региональные контрасты.",
+    area:5.86, // базовая отправная величина; далее сдвиги структурами
+    crops: [
+      // Примерная целевая структура при потеплении (демо-сценарий)
+      {key:"Зерновые и зернобобовые", val:40.0, color:"#60a5fa"},
+      {key:"Кормовые", val:40.0, color:"#34d399"},
+      {key:"Технические", val:10.5, color:"#f97316"},
+      {key:"Картофель", val:3.5, color:"#f59e0b"},
+      {key:"Овощи", val:1.5, color:"#a78bfa"}
+      // Дополнительно: тёплолюбивые культуры (учитываются в «технических»/«зернобобовых»)
+    ],
+    yields: [
+      // Демонстрационный сдвиг: снижение южных (картофель), рост кукурузы (условно в зерновых)
+      {key:"Кукуруза (условно)", val:65, color:"#22c55e"}, // ориентир (ц/га) для визуализации
+      {key:"Картофель (юг)", val:170, color:"#f59e0b"},
+      {key:"Зерновые (с-запад)", val:33, color:"#60a5fa"},
+      {key:"Рапс", val:20.5, color:"#a3e635"},
+      {key:"Овощи", val:285, color:"#a78bfa"}
+    ],
+    regionNotes: [
+      {region:"Гомель", type:"bad",  text:"Частые засухи, снижение осадков → падение урожайности картофеля и озимой пшеницы."},
+      {region:"Витебск", type:"warn", text:"Повышение осадков → переувлажнение и риск заболачивания; требуется дренаж и подбор культур."},
+      {region:"Брест", type:"warn", text:"Сдвиг сезонов и миграция видов → пересмотр сроков посева и сортов."}
+    ],
+    adaptation: [
+      {type:"good", text:"Увеличение доли теплолюбивых культур (кукуруза, соя, бахчевые, виноград)."},
+      {type:"warn", text:"Снижение урожайности озимой пшеницы и картофеля в южных регионах → переход на засухоустойчивые сорта."},
+      {type:"good", text:"Расширение тепличного земледелия и капельного орошения."},
+      {type:"good", text:"Увеличение вегетационного периода → диверсификация и второй урожай в отдельных зонах."},
+      {type:"good", text:"Формирование новой агроклиматической зоны в Полесье."},
+      {type:"warn", text:"Сдвиг сроков посева и уборки; пересмотр логистики и хранения."}
+    ],
+    sources:[
+      "Температура: 11.0…14.5 °C",
+      "Осадки: 538–735 мм/год",
+      "Региональные эффекты: Гомель (засухи), Витебск (заболачивание), Брест (сдвиг сезонов)"
+    ]
+  }
+};
+
+/** Элементы */
+const epochSel = document.getElementById('epoch');
+const regionSel = document.getElementById('region');
+const regionTag = document.getElementById('regionTag');
+const tMin = document.getElementById('tMin'), tMax = document.getElementById('tMax'), tBar = document.getElementById('tBar');
+const pMin = document.getElementById('pMin'), pMax = document.getElementById('pMax'), pBar = document.getElementById('pBar');
+const climText = document.getElementById('climText'), areaEl = document.getElementById('area');
+const pie = document.getElementById('pie'), legend = document.getElementById('legend');
+const yieldBars = document.getElementById('yieldBars');
+const regionEffects = document.getElementById('regionEffects');
+const adaptation = document.getElementById('adaptation');
+const dataNotes = document.getElementById('dataNotes');
+const vizSlider = document.getElementById('vizSlider');
+
+/** Утилиты */
+function pct(val, total) { return total ? (val/total*100) : 0; }
+function setTag(region, block) {
+  const map = {
+    BY: {txt:"Среднее по Беларуси", cls:"tag"},
+    Brest: {txt:"Брест: сезоны и миграция", cls:"pill warn"},
+    Vitebsk: {txt:"Витебск: переувлажнение", cls:"pill warn"},
+    Gomel: {txt:"Гомель: засухи", cls:"pill bad"}
+  };
+  const t = map[region] || map.BY;
+  regionTag.className = t.cls; regionTag.textContent = t.txt;
+  // Дополнительный визуальный эффект насыщения:
+  const v = vizSlider.value;
+  regionTag.style.filter = `saturate(${1 + (v/100)*0.5})`;
+}
+
+/** Обновление блока */
+function updateBlock() {
+  const key = epochSel.value;
+  const block = DATA[key];
+  const region = regionSel.value;
+
+  // Основные показатели
+  tMin.textContent = block.temp[0].toFixed(1);
+  tMax.textContent = block.temp[1].toFixed(1);
+  pMin.textContent = Math.round(block.precip[0]);
+  pMax.textContent = Math.round(block.precip[1]);
+  climText.textContent = block.climate;
+  areaEl.textContent = block.area ? block.area.toFixed(2) : '—';
+
+  // Простая шкала: нормируем в условный 0–100 для визуального бара
+  const tSpan = Math.max(0, block.temp[1] - block.temp[0]);
+  const pSpan = Math.max(0, block.precip[1] - block.precip[0]);
+  tBar.style.width = `${Math.min(100, tSpan * 10)}%`; // 10% на 1°C диапазона (наглядно)
+  pBar.style.width = `${Math.min(100, pSpan / 3)}%`;  // ~3% на 10 мм (наглядно)
+
+  // Пирог посевов
+  legend.innerHTML = '';
+  if (block.crops) {
+    const stops = [];
+    let acc = 0;
+    block.crops.forEach(c => {
+      const start = acc;
+      acc += c.val;
+      const end = acc;
+      stops.push(`${c.color} ${start}% ${end}%`);
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.innerHTML = `<span class="sw" style="background:${c.color}"></span><span>${c.key}</span><span class="mini">${c.val.toFixed(1)}%</span>`;
+      legend.appendChild(div);
+    });
+    pie.style.background = `conic-gradient(${stops.join(', ')})`;
+  } else {
+    pie.style.background = `conic-gradient(#1f2937 0 100%)`;
+    legend.innerHTML = `<div class="item"><span class="sw" style="background:#1f2937"></span><span>Посевы отсутствуют / не актуально</span></div>`;
+  }
+
+  // Урожайности
+  yieldBars.innerHTML = '';
+  if (block.yields) {
+    const maxY = Math.max(...block.yields.map(y => y.val));
+    block.yields.forEach(y => {
+      const row = document.createElement('div');
+      row.innerHTML = `
+        <div class="row" style="justify-content:space-between;">
+          <span>${y.key}</span><span class="mini">${y.val} ц/га</span>
+        </div>
+        <div class="bar"><span style="background:${y.color}; width:${(y.val/maxY*100).toFixed(0)}%"></span></div>
+      `;
+      yieldBars.appendChild(row);
+    });
+  } else {
+    yieldBars.innerHTML = `<div class="mini">Нет данных об урожайности для выбранного периода.</div>`;
+  }
+
+  // Региональные эффекты (только для прогноза)
+  regionEffects.innerHTML = '';
+  if (key === 'forecast') {
+    DATA.forecast.regionNotes.forEach(note => {
+      const div = document.createElement('div');
+      const cls = note.type === 'bad' ? 'bad' : (note.type === 'warn' ? 'warn' : 'good');
+      div.className = `pill ${cls}`;
+      div.textContent = `${note.region}: ${note.text}`;
+      regionEffects.appendChild(div);
+    });
+  } else {
+    regionEffects.innerHTML = `<div class="mini">Региональные эффекты актуальны для прогнозного периода.</div>`;
+  }
+
+  // Адаптация
+  adaptation.innerHTML = '';
+  block.adaptation.forEach(a => {
+    const div = document.createElement('div');
+    const cls = a.type === 'bad' ? 'bad' : (a.type === 'warn' ? 'warn' : 'good');
+    div.className = `pill ${cls}`;
+    div.textContent = a.text;
+    adaptation.appendChild(div);
+  });
+
+  // Источники/заметки
+  dataNotes.innerHTML = '';
+  const notes = [
+    `Период: ${block.name}`,
+    `Температура: ${block.temp[0]}…${block.temp[1]} °C`,
+    `Осадки: ${block.precip[0]}…${block.precip[1]} мм/год`,
+    ...(block.sources || [])
+  ];
+  notes.forEach(n => {
+    const li = document.createElement('li');
+    li.textContent = n;
+    dataNotes.appendChild(li);
+  });
+
+  // Обновить индикатор региона
+  setTag(region, block);
+}
+
+/** Слайдер визуальной насыщенности (декор) */
+vizSlider.addEventListener('input', () => {
+  const v = vizSlider.value;
+  // Влияет на насыщенность пирога и баров (наглядность)
+  pie.style.filter = `saturate(${1 + (v/100)*0.8})`;
+  document.querySelectorAll('.bar > span').forEach(el => {
+    el.style.filter = `saturate(${1 + (v/100)*0.6})`;
+  });
+  setTag(regionSel.value, DATA[epochSel.value]);
+});
+
+/** Слушатели */
+epochSel.addEventListener('change', updateBlock);
+regionSel.addEventListener('change', updateBlock);
+
+/** Инициализация */
+updateBlock();
+</script>
+</body>
+</html>
